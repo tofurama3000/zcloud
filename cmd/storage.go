@@ -15,9 +15,13 @@ var StorageCmd = &cobra.Command{
 	Long:  "Perform various operations related to blob storage",
 }
 
-var cpRecursive bool
-var lsRecursive bool
-var rmRecursive bool
+var (
+	cpRecursive bool
+	lsRecursive bool
+	rmRecursive bool
+	transferRecursive bool
+)
+
 
 func init () {
 	CpCmd.Flags().BoolVarP(&cpRecursive, "recursive", "r", false, "Recursively copy from src")
@@ -28,6 +32,11 @@ func init () {
 
 	RmCmd.Flags().BoolVarP(&rmRecursive, "recursive", "r", false, "Recursively remove")
 	StorageCmd.AddCommand(RmCmd)
+
+	StorageCmd.AddCommand(SyncCmd)
+
+	TransferCmd.Flags().BoolVarP(&transferRecursive, "recursive", "r", false, "Recursively transfer")
+	StorageCmd.AddCommand(TransferCmd)
 	
 	RootCmd.AddCommand(StorageCmd)
 }
@@ -94,5 +103,65 @@ var RmCmd = &cobra.Command{
 			Recursive: rmRecursive,
 		}
 		controller.Rm(pp, rp, out.New())
+	},
+}
+
+var SyncCmd = &cobra.Command{
+	Use:   "sync",
+	Short: "Sync objects",
+	Long:  "Sync objects from a source to a destination",
+	Args: cobra.ExactArgs(2),
+	Run: func (cmd *cobra.Command, args []string) {
+		pp := getProvParamsFromEnv()
+		sp := controller.SyncParams{
+			Src: args[0],
+			Dest: args[1],
+		}
+		controller.Sync(pp, sp, out.New())
+	},
+}
+
+var TransferCmd = &cobra.Command{
+	Use: "transfer",
+	Short: "Transfer objects",
+	Long: "Transfer objects from one provider to another",
+	Args: cobra.ExactArgs(2),
+	Run: func (cmd *cobra.Command, args []string) {
+		pp := getProvParamsFromEnv()
+		tp := controller.TransferParams{
+			Src: args[0],
+			Dest: args[1],
+			DestProv: destProv,
+			Recursive: transferRecursive,
+		}
+		controller.Transfer(pp, tp, out.New())
+	},
+}
+
+var MakeBucketCmd = &cobra.Command{
+	Use: "mb",
+	Short: "Make bucket",
+	Long: "Create a new bucket",
+	Args: cobra.ExactArgs(1),
+	Run: func (cmd *cobra.Command, args []string) {
+		pp := getProvParamsFromEnv()
+		mbp := controller.MakeBucketParams{
+			Name: args[0],
+		}
+		controller.MakeBucket(pp, mbp, out.New())
+	},
+}
+
+var RemoveBucketCmd = &cobra.Command{
+	Use: "rb",
+	Short: "Remove bucket",
+	Long: "Delete a bucket",
+	Args: cobra.ExactArgs(1),
+	Run: func (cmd *cobra.Command, args []string) {
+		pp := getProvParamsFromEnv()
+		rbp := controller.RemoveBucketParams{
+			Name: args[0],
+		}
+		controller.RemoveBucket(pp, rbp, out.New())
 	},
 }
